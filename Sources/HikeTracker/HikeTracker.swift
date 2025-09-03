@@ -6,6 +6,9 @@ public class HikeTracker: NSObject {
     
     private let locationManager = CLLocationManager()
     
+    private let locationService = LocationService()
+    private let permissionManager = PermissionManager()
+    
     public var onLocationUpdate: ((CLLocation, Double) -> Void)?
     public var onError: ((Error) -> Void)?
     
@@ -28,9 +31,32 @@ public class HikeTracker: NSObject {
         locationManager.pausesLocationUpdatesAutomatically = false
     }
     
-    public func requestAuthorization() {
-        locationManager.requestAlwaysAuthorization()
-    }
+    // Richiesta iniziale "When In Use"
+        public func requestWhenInUseAuthorization(completion: @escaping (Bool) -> Void) {
+            permissionManager.requestWhenInUseAuthorization { status in
+                completion(status == .authorizedWhenInUse || status == .authorizedAlways)
+            }
+        }
+
+        // Richiesta successiva "Always"
+        public func requestAlwaysAuthorization(completion: @escaping (Bool) -> Void) {
+            permissionManager.requestAlwaysAuthorization { status in
+                completion(status == .authorizedAlways)
+            }
+        }
+
+        // Controllo permessi
+        public func checkPermissions() -> Bool {
+            let status = permissionManager.checkAuthorizationStatus()
+            return status == .authorizedWhenInUse || status == .authorizedAlways
+        }
+
+        // Mostra avviso personalizzato
+    @MainActor public func showSettingsAlert() {
+            permissionManager.showSettingsAlert()
+        }
+
+        // Avvio tracking
     
     public func startTracking() {
         fixCount = 0
