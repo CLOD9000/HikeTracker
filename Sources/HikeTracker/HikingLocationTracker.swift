@@ -80,6 +80,16 @@ public class HikingLocationTracker: NSObject {
         }
     }
     
+    func requestWhenInUseAuthorization(completion: @escaping AuthorizationHandler) {
+        authorizationHandler = completion
+            locationManager.requestWhenInUseAuthorization()
+        }
+
+        func requestAlwaysAuthorization(completion: @escaping AuthorizationHandler) {
+            authorizationHandler = completion
+            locationManager.requestAlwaysAuthorization()
+        }
+    
     public var authorizationStatus: LocationAuthorizationStatus {
         switch locationManager.authorizationStatus {
         case .notDetermined:
