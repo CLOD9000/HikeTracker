@@ -25,6 +25,8 @@ public class HikingLocationTracker: NSObject {
     private var lastValidLocation: CLLocation?
     private var lastUpdateTime: Date?
     private var isTracking = false
+    private var altitudeBuffer: [Double] = []
+    private let maxBufferSize = 5
     
     // MARK: - Closures
     private var locationUpdateHandler: LocationUpdateHandler?
@@ -166,7 +168,7 @@ public class HikingLocationTracker: NSObject {
     
     // MARK: - Metodi privati
     private func processValidLocation(_ location: CLLocation) {
-        let hikingLocation = HikingLocation(from: location)
+        let hikingLocation = HikingLocation(from: location, altitude: smoothedAltitude(newAltitude: location.altitude))
         
         // Aggiorna il track corrente
         if var track = currentTrack {
@@ -191,6 +193,14 @@ public class HikingLocationTracker: NSObject {
         // Chiama la closure
         locationUpdateHandler?(hikingLocation)
     }
+    
+    private func smoothedAltitude(newAltitude: Double) -> Double {
+            altitudeBuffer.append(newAltitude)
+            if altitudeBuffer.count > maxBufferSize {
+                altitudeBuffer.removeFirst()
+            }
+            return altitudeBuffer.reduce(0, +) / Double(altitudeBuffer.count)
+        }
 }
 
 // MARK: - CLLocationManagerDelegate
@@ -256,62 +266,3 @@ extension HikingLocationTracker: CLLocationManagerDelegate {
     }
 }
 
-// MARK: - Esempio di utilizzo
-/*
-// ExampleViewController.swift
-class ExampleViewController: UIViewController {
-    
-    private let tracker = HikingLocationTracker(configuration: .hiking)
-    
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        setupLocationTracking()
-    }
-    
-    private func setupLocationTracking() {
-        tracker.requestLocationPermission { [weak self] status in
-            DispatchQueue.main.async {
-                switch status {
-                case .authorizedAlways, .authorizedWhenInUse:
-                    print("Permesso concesso")
-                case .denied:
-                    print("Permesso negato")
-                default:
-                    break
-                }
-            }
-        }
-    }
-    
-    private func startHiking() {
-        tracker.startTracking(
-            onLocationUpdate: { [weak self] location in
-                DispatchQueue.main.async {
-                    self?.updateUI(with: location)
-                }
-            },
-            onError: { error in
-                DispatchQueue.main.async {
-                    print("Errore: \(error.localizedDescription)")
-                }
-            }
-        )
-    }
-    
-    private func stopHiking() {
-        tracker.stopTracking { [weak self] track in
-            DispatchQueue.main.async {
-                self?.saveTrack(track)
-            }
-        }
-    }
-    
-    private func updateUI(with location: HikingLocation) {
-        // Aggiorna l'interfaccia utente
-    }
-    
-    private func saveTrack(_ track: HikingTrack) {
-        // Salva il percorso
-    }
-}
-*/

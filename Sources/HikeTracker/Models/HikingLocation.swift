@@ -26,5 +26,15 @@ public struct HikingLocation: Sendable {
         self.speed = location.speed
         self.course = location.course
     }
+    
+    public init(from location: CLLocation, altitude smoothedAltitude: Double) {
+        self.coordinate = location.coordinate
+        self.altitude = smoothedAltitude
+        self.horizontalAccuracy = location.horizontalAccuracy
+        self.verticalAccuracy = location.verticalAccuracy
+        self.timestamp = location.timestamp
+        self.speed = location.speed
+        self.course = location.course
+    }
 }
 
