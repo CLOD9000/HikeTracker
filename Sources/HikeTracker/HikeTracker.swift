@@ -14,6 +14,10 @@ public class HikeTracker {
     
     private let locationService = LocationService()
     private let permissionManager = PermissionManager()
+    private let regionMonitor = RegionMonitor()
+    
+    var isTracking = false
+    var isReturned = false
 
     private init() {}
 
@@ -50,4 +54,27 @@ public class HikeTracker {
     public func stopTracking() {
         locationService.stopTracking()
     }
+    
+    // ✅ REGION MONITORING
+        public func startRegionMonitoring(
+            center: CLLocationCoordinate2D,
+            radius: CLLocationDistance,
+            identifier: String,
+            onEnter: @escaping (CLRegion) -> Void,
+            onExit: @escaping (CLRegion) -> Void,
+            onError: ((Error) -> Void)? = nil
+        ) {
+            regionMonitor.startMonitoring(
+                center: center,
+                radius: radius,
+                identifier: identifier,
+                onEnter: onEnter,
+                onExit: onExit,
+                onError: onError
+            )
+        }
+        
+        public func stopRegionMonitoring(identifier: String) {
+            regionMonitor.stopMonitoring(identifier: identifier)
+        }
 }
