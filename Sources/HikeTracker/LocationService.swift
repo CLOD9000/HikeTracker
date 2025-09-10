@@ -11,6 +11,10 @@ class LocationService: NSObject, CLLocationManagerDelegate {
     private let locationManager = CLLocationManager()
     private var onUpdate: ((HikeLocation) -> Void)?
     
+    // 🔹 Closures per heading (direzione)
+    private var headingHandler: ((CLHeading) -> Void)?
+    private var headingErrorHandler: ((Error) -> Void)?
+    
     // Buffer per smoothing altitudine
     private var altitudeBuffer: [Double] = []
     private let maxBufferSize = 5  // media sugli ultimi 5 valori
@@ -35,6 +39,32 @@ class LocationService: NSObject, CLLocationManagerDelegate {
         onUpdate = nil
     }
     
+    // MARK: - Heading Updates
+        func startUpdatingHeading(
+            onUpdate: @escaping (CLHeading) -> Void,
+            onError: ((Error) -> Void)? = nil
+        ) {
+            headingHandler = onUpdate
+            headingErrorHandler = onError
+            
+            guard CLLocationManager.headingAvailable() else {
+                onError?(NSError(
+                    domain: "LocationService",
+                    code: 1001,
+                    userInfo: [NSLocalizedDescriptionKey: "Heading not available on this device"]
+                ))
+                return
+            }
+            
+            locationManager.startUpdatingHeading()
+        }
+    
+    func stopUpdatingHeading() {
+        locationManager.stopUpdatingHeading()
+        headingHandler = nil
+        headingErrorHandler = nil
+    }
+    
     /// Calcola la media mobile dell'altitudine
     private func smoothedAltitude(newAltitude: Double) -> Double {
         altitudeBuffer.append(newAltitude)
@@ -42,6 +72,15 @@ class LocationService: NSObject, CLLocationManagerDelegate {
             altitudeBuffer.removeFirst()
         }
         return altitudeBuffer.reduce(0, +) / Double(altitudeBuffer.count)
+    }
+    
+    func locationManager(_ manager: CLLocationManager, didUpdateHeading newHeading: CLHeading) {
+        headingHandler?(newHeading)
+    }
+    
+    func locationManagerShouldDisplayHeadingCalibration(_ manager: CLLocationManager) -> Bool {
+        // ✅ mostra UI di calibrazione se necessario
+        return true
     }
 
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {

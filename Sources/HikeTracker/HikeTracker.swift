@@ -55,6 +55,18 @@ public class HikeTracker {
         locationService.stopTracking()
     }
     
+    // MARK: - Heading
+    public func startUpdatingHeading(
+        onUpdate: @escaping (CLHeading) -> Void,
+        onError: ((Error) -> Void)? = nil
+    ) {
+        locationService.startUpdatingHeading(onUpdate: onUpdate, onError: onError)
+    }
+    
+    public func stopUpdatingHeading() {
+        locationService.stopUpdatingHeading()
+    }
+    
     // ✅ REGION MONITORING
         public func startRegionMonitoring(
             center: CLLocationCoordinate2D,
