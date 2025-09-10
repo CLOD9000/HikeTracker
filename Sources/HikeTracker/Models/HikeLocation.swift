@@ -13,4 +13,6 @@ public struct HikeLocation {
     public let horizontalAccuracy: CLLocationAccuracy
     public let verticalAccuracy: CLLocationAccuracy
     public let timestamp: Date
+    public let location: CLLocation
+
 }
