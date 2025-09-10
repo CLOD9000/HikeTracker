@@ -15,9 +15,9 @@ public class HikeTracker {
     private let locationService = LocationService()
     private let permissionManager = PermissionManager()
     private let regionMonitor = RegionMonitor()
-    
-    var isTracking = false
-    var isReturned = false
+
+    public var isTracking = false
+    public var isReturned = false
 
     private init() {}
 
@@ -33,9 +33,9 @@ public class HikeTracker {
         }
     }
 
-    public func checkPermissions() -> Bool {
+    public func checkPermissions() -> CLAuthorizationStatus {
         let status = permissionManager.checkAuthorizationStatus()
-        return status == .authorizedWhenInUse || status == .authorizedAlways
+        return status
     }
 
     /// ✅ Nuovo metodo pubblico per osservare costantemente i permessi
