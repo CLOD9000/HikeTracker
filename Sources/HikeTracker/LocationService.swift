@@ -86,16 +86,33 @@ public class LocationService: NSObject, CLLocationManagerDelegate {
             return
         }
         
-        // --- Algoritmo di smoothing per l’altitudine ---
-        let rawAltitude = location.altitude
+        // --- Smoothing altitudine ---
+        var altitudeToUse = location.altitude
         if let lastSmoothed = smoothedAltitude {
-            smoothedAltitude = smoothingFactor * rawAltitude + (1 - smoothingFactor) * lastSmoothed
+            smoothedAltitude = smoothingFactor * altitudeToUse + (1 - smoothingFactor) * lastSmoothed
         } else {
-            smoothedAltitude = rawAltitude
+            smoothedAltitude = altitudeToUse
         }
+        altitudeToUse = smoothedAltitude ?? altitudeToUse
         
-        // ✅ Posizione valida → callback
-        onLocationUpdate?(location)
+        // --- Se simulatore: genera altitudine realistica ---
+        #if targetEnvironment(simulator)
+        altitudeToUse = Double.random(in: 50...300)
+        #endif
+        
+        // ✅ Creiamo un nuovo CLLocation con altitudine aggiornata
+        let adjustedLocation = CLLocation(
+            coordinate: location.coordinate,
+            altitude: altitudeToUse,
+            horizontalAccuracy: location.horizontalAccuracy,
+            verticalAccuracy: location.verticalAccuracy,
+            course: location.course,
+            speed: location.speed,
+            timestamp: location.timestamp
+        )
+        
+        // 🔔 Callback con la nuova CLLocation “pulita”
+        onLocationUpdate?(adjustedLocation)
     }
     
     public func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {

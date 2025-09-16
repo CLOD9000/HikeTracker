@@ -24,7 +24,7 @@ public class HikeTracker {
     private let permissionManager = PermissionManager()
     private let regionMonitor = RegionMonitor()
     
-    private var isTracking = false
+    public var isTracking = false
     
     private init() {}
     
