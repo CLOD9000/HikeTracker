@@ -9,7 +9,9 @@ import CoreLocation
 import UIKit
 
 class PermissionManager: NSObject, CLLocationManagerDelegate {
+    
     private let locationManager = CLLocationManager()
+    private var permissionHandler: ((CLAuthorizationStatus) -> Void)?
     
     /// ✅ Callback che rimane attiva per monitorare lo stato
     private var onStatusChanged: ((CLAuthorizationStatus) -> Void)?
@@ -21,6 +23,40 @@ class PermissionManager: NSObject, CLLocationManagerDelegate {
         super.init()
         locationManager.delegate = self
     }
+    
+    /// ✅ Controlla lo stato e, se necessario, richiede autorizzazione
+    func checkAndRequestAuthorization(
+        onStatusChange: @escaping (CLAuthorizationStatus) -> Void
+    ) {
+        permissionHandler = onStatusChange
+        
+        let status = currentAuthorizationStatus()
+        
+        switch status {
+        case .notDetermined:
+            locationManager.requestWhenInUseAuthorization()
+        case .authorizedWhenInUse:
+            // Dopo aver concesso WhenInUse, puoi richiedere Always
+            locationManager.requestAlwaysAuthorization()
+            onStatusChange(status)
+        default:
+            onStatusChange(status)
+        }
+    }
+    
+    /// ✅ Restituisce lo stato attuale
+    func currentAuthorizationStatus() -> CLAuthorizationStatus {
+        return locationManager.authorizationStatus
+    }
+    
+    // MARK: - CLLocationManagerDelegate
+    func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        let status = manager.authorizationStatus
+        permissionHandler?(status)
+    }
+    
+    
+    
 
     // Richiesta "When In Use"
     func requestWhenInUseAuthorization(completion: @escaping (CLAuthorizationStatus) -> Void) {

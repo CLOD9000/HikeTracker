@@ -20,6 +20,17 @@ public class HikeTracker {
     public var isReturned = false
 
     private init() {}
+    
+    // MARK: - Permission
+    public func checkAndRequestAuthorization(
+        onStatusChange: @escaping (CLAuthorizationStatus) -> Void
+    ) {
+        permissionManager.checkAndRequestAuthorization(onStatusChange: onStatusChange)
+    }
+    
+    public func currentAuthorizationStatus() -> CLAuthorizationStatus {
+        return permissionManager.currentAuthorizationStatus()
+    }
 
     public func requestWhenInUseAuthorization(completion: @escaping (Bool) -> Void) {
         permissionManager.requestWhenInUseAuthorization { status in
