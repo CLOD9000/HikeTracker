@@ -9,88 +9,73 @@ import Foundation
 import CoreLocation
 import UIKit
 
+/// Classe principale del framework, gestisce:
+/// - Richiesta e monitoraggio permessi
+/// - Tracking posizione + altitudine smussata
+/// - Direzione bussola
+/// - Region monitoring
+@MainActor
 public class HikeTracker {
-    @MainActor public static let shared = HikeTracker()
+    
+    // ✅ Singleton
+    public static let shared = HikeTracker()
     
     private let locationService = LocationService()
     private let permissionManager = PermissionManager()
     private let regionMonitor = RegionMonitor()
-
-    public var isTracking = false
-    public var isReturned = false
-
+    
+    private var isTracking = false
+    
     private init() {}
     
     // MARK: - Permission
+    
+    /// Controlla lo stato dei permessi e, se necessario, li richiede
     public func checkAndRequestAuthorization(
         onStatusChange: @escaping (CLAuthorizationStatus) -> Void
     ) {
         permissionManager.checkAndRequestAuthorization(onStatusChange: onStatusChange)
     }
     
+    /// Ritorna lo stato attuale dei permessi
     public func currentAuthorizationStatus() -> CLAuthorizationStatus {
         return permissionManager.currentAuthorizationStatus()
     }
-
-    public func requestWhenInUseAuthorization(completion: @escaping (Bool) -> Void) {
-        permissionManager.requestWhenInUseAuthorization { status in
-            completion(status == .authorizedWhenInUse || status == .authorizedAlways)
-        }
-    }
-
-    public func requestAlwaysAuthorization(completion: @escaping (Bool) -> Void) {
-        permissionManager.requestAlwaysAuthorization { status in
-            completion(status == .authorizedAlways)
-        }
-    }
-
-    public func checkPermissions() -> CLAuthorizationStatus {
-        let status = permissionManager.checkAuthorizationStatus()
-        return status
-    }
-
-    /// ✅ Nuovo metodo pubblico per osservare costantemente i permessi
-    public func observePermissionChanges(onChange: @escaping (CLAuthorizationStatus) -> Void) {
-        permissionManager.observeAuthorizationStatus(onChange: onChange)
-    }
-
-    @MainActor public func showSettingsAlert() {
-        permissionManager.showSettingsAlert()
-    }
     
-    // MARK: - Location
+    // MARK: - Tracking
+    
+    /// Avvia il tracking della posizione
     public func startTracking(
-        onUpdate: @escaping (CLLocation) -> Void,
+        onUpdate: @escaping (CLLocation, Double?) -> Void,
         onError: ((Error) -> Void)? = nil
     ) {
-        guard !isTracking else { return } // ✅ evita doppio avvio
+        guard !isTracking else { return }
         isTracking = true
-        locationService.startUpdatingLocation(onUpdate: onUpdate, onError: onError)
+        
+        locationService.onLocationUpdate = { [weak self] location in
+            guard let self = self else { return }
+            let smoothedAlt = self.locationService.getSmoothedAltitude()
+            onUpdate(location, smoothedAlt)
+        }
+        
+        locationService.startUpdatingLocation()
     }
     
+    /// Ferma il tracking
     public func stopTracking() {
         guard isTracking else { return }
         isTracking = false
         locationService.stopUpdatingLocation()
     }
-
-//    public func startTracking(onUpdate: @escaping (HikeLocation) -> Void) {
-//        locationService.startTracking(onUpdate: onUpdate)
-//    }
-//
-//    public func stopTracking() {
-//        locationService.stopTracking()
-//    }
     
-    // MARK: - Heading
-    public func startUpdatingHeading(
-        onUpdate: @escaping (CLHeading) -> Void,
-        onError: ((Error) -> Void)? = nil
-    ) {
-        locationService.startUpdatingHeading(onUpdate: onUpdate, onError: onError)
+    // MARK: - Heading (direzione bussola)
+    
+    public func startHeadingUpdates(onUpdate: @escaping (CLHeading) -> Void) {
+        locationService.onHeadingUpdate = onUpdate
+        locationService.startUpdatingHeading()
     }
     
-    public func stopUpdatingHeading() {
+    public func stopHeadingUpdates() {
         locationService.stopUpdatingHeading()
     }
     
@@ -117,3 +102,4 @@ public class HikeTracker {
             regionMonitor.stopMonitoring(identifier: identifier)
         }
 }
+
