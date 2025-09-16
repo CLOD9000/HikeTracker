@@ -11,6 +11,10 @@ class LocationService: NSObject, CLLocationManagerDelegate {
     private let locationManager = CLLocationManager()
     private var onUpdate: ((HikeLocation) -> Void)?
     
+    // 🔹 Closures per posizione / altitudine
+    private var locationHandler: ((CLLocation) -> Void)?
+    private var errorHandler: ((Error) -> Void)?
+    
     // 🔹 Closures per heading (direzione)
     private var headingHandler: ((CLHeading) -> Void)?
     private var headingErrorHandler: ((Error) -> Void)?
@@ -37,6 +41,22 @@ class LocationService: NSObject, CLLocationManagerDelegate {
         locationManager.stopUpdatingLocation()
         altitudeBuffer.removeAll()
         onUpdate = nil
+    }
+    
+    // MARK: - Location Updates
+    func startUpdatingLocation(
+        onUpdate: @escaping (CLLocation) -> Void,
+        onError: ((Error) -> Void)? = nil
+    ) {
+        locationHandler = onUpdate
+        errorHandler = onError
+        locationManager.startUpdatingLocation()
+    }
+    
+    func stopUpdatingLocation() {
+        locationManager.stopUpdatingLocation()
+        locationHandler = nil
+        errorHandler = nil
     }
     
     // MARK: - Heading Updates

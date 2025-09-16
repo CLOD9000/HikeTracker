@@ -46,14 +46,30 @@ public class HikeTracker {
     @MainActor public func showSettingsAlert() {
         permissionManager.showSettingsAlert()
     }
-
-    public func startTracking(onUpdate: @escaping (HikeLocation) -> Void) {
-        locationService.startTracking(onUpdate: onUpdate)
+    
+    // MARK: - Location
+    public func startTracking(
+        onUpdate: @escaping (CLLocation) -> Void,
+        onError: ((Error) -> Void)? = nil
+    ) {
+        guard !isTracking else { return } // ✅ evita doppio avvio
+        isTracking = true
+        locationService.startUpdatingLocation(onUpdate: onUpdate, onError: onError)
     }
-
+    
     public func stopTracking() {
-        locationService.stopTracking()
+        guard isTracking else { return }
+        isTracking = false
+        locationService.stopUpdatingLocation()
     }
+
+//    public func startTracking(onUpdate: @escaping (HikeLocation) -> Void) {
+//        locationService.startTracking(onUpdate: onUpdate)
+//    }
+//
+//    public func stopTracking() {
+//        locationService.stopTracking()
+//    }
     
     // MARK: - Heading
     public func startUpdatingHeading(
