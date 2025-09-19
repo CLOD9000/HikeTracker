@@ -68,6 +68,45 @@ public class LocationService: NSObject, CLLocationManagerDelegate {
     public func getSmoothedAltitude() -> Double? {
         return smoothedAltitude
     }
+        
+    /// Restituisce una posizione realistica, anche se non precisa,
+    /// provando a rilassare progressivamente l'accuratezza richiesta.
+    /// - Parameter thresholds: soglie di accuratezza da provare (in metri).
+    /// - Returns: CLLocation valida oppure nil.
+    public func getDynamicFallbackLocation(
+        thresholds: [CLLocationAccuracy] = [100, 250, 500, 1000]
+    ) -> CLLocation? {
+        
+        guard let lastLocation = locationManager.location else {
+            return nil
+        }
+        
+        // Controlla se la posizione soddisfa una delle soglie
+        for threshold in thresholds {
+            if lastLocation.horizontalAccuracy <= threshold {
+                return lastLocation
+            }
+        }
+        
+        // Se non soddisfa nessuna soglia, ma è comunque "plausibile", la aggiustiamo
+        if lastLocation.horizontalAccuracy <= 10_000 {
+            let adjustedLocation = CLLocation(
+                coordinate: lastLocation.coordinate,
+                altitude: lastLocation.altitude,
+                horizontalAccuracy: thresholds.last ?? 1000,
+                verticalAccuracy: lastLocation.verticalAccuracy,
+                course: lastLocation.course,
+                speed: lastLocation.speed,
+                timestamp: lastLocation.timestamp
+            )
+            return adjustedLocation
+        }
+        
+        // Se è totalmente sbagliata (accuratezza > 10 km), scartiamo
+        return nil
+    }
+
+
     
     // MARK: - CLLocationManagerDelegate
     

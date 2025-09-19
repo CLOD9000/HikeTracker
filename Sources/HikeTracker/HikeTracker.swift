@@ -68,6 +68,10 @@ public class HikeTracker {
         locationService.stopUpdatingLocation()
     }
     
+    public func getDynamicFallbackLocation() -> CLLocation? {
+        return locationService.getDynamicFallbackLocation()
+    }
+    
     // MARK: - Heading (direzione bussola)
     
     public func startHeadingUpdates(onUpdate: @escaping (CLHeading) -> Void) {
@@ -102,4 +106,6 @@ public class HikeTracker {
             regionMonitor.stopMonitoring(identifier: identifier)
         }
 }
+
+
 
