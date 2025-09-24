@@ -33,7 +33,7 @@ public class LocationService: NSObject, CLLocationManagerDelegate {
     
     /// Soglie di validazione
     private let maxAccuracy: CLLocationAccuracy = 50   // metri
-    private let maxAge: TimeInterval = 10              // secondi
+    private let maxAge: TimeInterval = 60              // secondi
     
     // MARK: - Init
     
