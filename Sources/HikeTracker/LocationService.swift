@@ -42,6 +42,8 @@ public class LocationService: NSObject, CLLocationManagerDelegate {
         locationManager.delegate = self
         locationManager.desiredAccuracy = kCLLocationAccuracyBest
         locationManager.distanceFilter = 5
+        locationManager.activityType = .fitness
+        locationManager.pausesLocationUpdatesAutomatically = false
     }
     
     // MARK: - Public API
