@@ -25,15 +25,17 @@ public class LocationService: NSObject, CLLocationManagerDelegate {
     /// Callback per la direzione bussola
     public var onHeadingUpdate: ((CLHeading) -> Void)?
     
+    private var lastLocation: CLLocation?
     /// Ultimo valore smussato dell’altitudine
-    private var smoothedAltitude: Double?
+    private var smoothedAltitudeValue: Double?
     
     /// Parametri di smoothing
     private let smoothingFactor = 0.2
+
     
     /// Soglie di validazione
     private let maxAccuracy: CLLocationAccuracy = 50   // metri
-    private let maxAge: TimeInterval = 60              // secondi
+    private let maxAge: TimeInterval = 120              // secondi
     
     // MARK: - Init
     
@@ -68,7 +70,11 @@ public class LocationService: NSObject, CLLocationManagerDelegate {
     }
     
     public func getSmoothedAltitude() -> Double? {
-        return smoothedAltitude
+        return smoothedAltitudeValue
+    }
+    
+    public func getLastLocation() -> CLLocation? {
+        return lastLocation
     }
         
     /// Restituisce una posizione realistica, anche se non precisa,
@@ -108,52 +114,99 @@ public class LocationService: NSObject, CLLocationManagerDelegate {
         return nil
     }
 
-
+    // MARK: - Provate API
+    
+    /// Restituisce un'altitudine plausibile per simulatore
+    private var isSimulator: Bool {
+        #if targetEnvironment(simulator)
+        return true
+        #else
+        return false
+        #endif
+    }
+    
+    /// Restituisce altitudine smussata usando Exponential Moving Average
+    private func smoothAltitude(_ rawAltitude: Double) -> Double {
+        if let lastSmoothed = smoothedAltitudeValue {
+            let newSmoothed = smoothingFactor * rawAltitude + (1 - smoothingFactor) * lastSmoothed
+            smoothedAltitudeValue = newSmoothed
+            return newSmoothed
+        } else {
+            smoothedAltitudeValue = rawAltitude
+            return rawAltitude
+        }
+    }
+    
+    private func generateSimulatedAltitude() -> Double {
+        // Genera un'altitudine plausibile tra 50 e 300 m
+        // Per rendere più “realistica” puoi anche aggiungere una variazione graduale
+        if let last = smoothedAltitudeValue {
+            let variation = Double.random(in: -5...5) // piccola variazione
+            let newAlt = max(50, min(300, last + variation))
+            smoothedAltitudeValue = newAlt
+            return newAlt
+        } else {
+            let initialAlt = Double.random(in: 50...300)
+            smoothedAltitudeValue = initialAlt
+            return initialAlt
+        }
+    }
     
     // MARK: - CLLocationManagerDelegate
     
     public func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
-        guard let location = locations.last else { return }
+        //guard let location = locations.last else { return }
+        guard let rawLocation = locations.last else { return }
+
+            let locationAge = -rawLocation.timestamp.timeIntervalSinceNow
+            let horizontalAccuracy = rawLocation.horizontalAccuracy
         
-        // 🛑 Filtro per scartare posizioni non affidabili
-        let locationAge = -location.timestamp.timeIntervalSinceNow
-        guard locationAge <= maxAge else {
-            print("⚠️ Scartata posizione vecchia (\(locationAge)s)")
+        // --------- 1. Se è la prima posizione → accetta sempre ---------
+            if lastLocation == nil {
+                let smoothedAltitude = smoothAltitude(rawLocation.altitude)
+                let simulatedAltitude = isSimulator ? generateSimulatedAltitude() : smoothedAltitude
+
+                let firstLocation = CLLocation(
+                    coordinate: rawLocation.coordinate,
+                    altitude: simulatedAltitude,
+                    horizontalAccuracy: horizontalAccuracy,
+                    verticalAccuracy: rawLocation.verticalAccuracy,
+                    timestamp: Date()
+                )
+
+                lastLocation = firstLocation
+                onLocationUpdate?(firstLocation)
+                print("✅ Prima posizione accettata (anche se vecchia)")
+                return
+            }
+        
+        // --------- 2. Scarta posizioni troppo vecchie ---------
+            guard locationAge <= maxAge else {
+                print("⚠️ Scartata posizione vecchia (\(locationAge)s)")
+                return
+            }
+        
+        // --------- 3. Scarta posizioni con accuracy troppo bassa ---------
+        guard horizontalAccuracy >= 0, horizontalAccuracy <= 50 else {
+            print("⚠️ Scartata posizione imprecisa (accuracy: \(horizontalAccuracy)m)")
             return
         }
         
-        guard location.horizontalAccuracy >= 0, location.horizontalAccuracy <= maxAccuracy else {
-            print("⚠️ Scartata posizione imprecisa (\(location.horizontalAccuracy)m)")
-            return
-        }
-        
-        // --- Smoothing altitudine ---
-        var altitudeToUse = location.altitude
-        if let lastSmoothed = smoothedAltitude {
-            smoothedAltitude = smoothingFactor * altitudeToUse + (1 - smoothingFactor) * lastSmoothed
-        } else {
-            smoothedAltitude = altitudeToUse
-        }
-        altitudeToUse = smoothedAltitude ?? altitudeToUse
-        
-        // --- Se simulatore: genera altitudine realistica ---
-        #if targetEnvironment(simulator)
-        altitudeToUse = Double.random(in: 50...300)
-        #endif
-        
-        // ✅ Creiamo un nuovo CLLocation con altitudine aggiornata
-        let adjustedLocation = CLLocation(
-            coordinate: location.coordinate,
-            altitude: altitudeToUse,
-            horizontalAccuracy: location.horizontalAccuracy,
-            verticalAccuracy: location.verticalAccuracy,
-            course: location.course,
-            speed: location.speed,
-            timestamp: location.timestamp
+        // --------- 4. Applica smoothing sull'altitudine ---------
+        let smoothedAltitude = smoothAltitude(rawLocation.altitude)
+        let simulatedAltitude = isSimulator ? generateSimulatedAltitude() : smoothedAltitude
+
+        let cleanLocation = CLLocation(
+            coordinate: rawLocation.coordinate,
+            altitude: simulatedAltitude,
+            horizontalAccuracy: horizontalAccuracy,
+            verticalAccuracy: rawLocation.verticalAccuracy,
+            timestamp: Date()
         )
-        
-        // 🔔 Callback con la nuova CLLocation “pulita”
-        onLocationUpdate?(adjustedLocation)
+
+        lastLocation = cleanLocation
+        onLocationUpdate?(cleanLocation)
+
     }
     
     public func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
