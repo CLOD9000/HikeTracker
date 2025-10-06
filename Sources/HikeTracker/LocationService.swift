@@ -12,7 +12,10 @@ import CoreLocation
 /// - Callback tramite closure
 /// - Smoothing per l’altitudine
 /// - Filtro per scartare posizioni vecchie o inaccurate
-public class LocationService: NSObject, CLLocationManagerDelegate {
+///
+
+@MainActor
+public class LocationService: NSObject, @MainActor CLLocationManagerDelegate {
     
     private let locationManager = CLLocationManager()
     
@@ -148,7 +151,7 @@ public class LocationService: NSObject, CLLocationManagerDelegate {
     }
     
     // MARK: - CLLocationManagerDelegate
-    @MainActor
+   
     public func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         //guard let location = locations.last else { return }
         guard let rawLocation = locations.last else { return }
