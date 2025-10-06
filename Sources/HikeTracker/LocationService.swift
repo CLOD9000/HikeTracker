@@ -31,11 +31,6 @@ public class LocationService: NSObject, CLLocationManagerDelegate {
     
     /// Parametri di smoothing
     private let smoothingFactor = 0.2
-
-    
-    /// Soglie di validazione
-    private let maxAccuracy: CLLocationAccuracy = 50   // metri
-    private let maxAge: TimeInterval = 120              // secondi
     
     // MARK: - Init
     
@@ -153,7 +148,7 @@ public class LocationService: NSObject, CLLocationManagerDelegate {
     }
     
     // MARK: - CLLocationManagerDelegate
-    
+    @MainActor
     public func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         //guard let location = locations.last else { return }
         guard let rawLocation = locations.last else { return }
@@ -179,15 +174,18 @@ public class LocationService: NSObject, CLLocationManagerDelegate {
                 print("✅ Prima posizione accettata (anche se vecchia)")
                 return
             }
-        
-        // --------- 2. Scarta posizioni troppo vecchie ---------
-            guard locationAge <= maxAge else {
-                print("⚠️ Scartata posizione vecchia (\(locationAge)s)")
-                return
-            }
+
+        if (HikeTracker.shared.isTiming) {
+            // --------- 2. Scarta posizioni troppo vecchie ---------
+            guard locationAge <= HikeTracker.shared.maxAge else {
+                    print("⚠️ Scartata posizione vecchia (\(locationAge)s)")
+                    return
+                }
+        }
+
         
         // --------- 3. Scarta posizioni con accuracy troppo bassa ---------
-        guard horizontalAccuracy >= 0, horizontalAccuracy <= 50 else {
+        guard horizontalAccuracy >= 0, horizontalAccuracy <= HikeTracker.shared.maxAccuracy else {
             print("⚠️ Scartata posizione imprecisa (accuracy: \(horizontalAccuracy)m)")
             return
         }

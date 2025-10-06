@@ -25,6 +25,10 @@ public class HikeTracker {
     private let regionMonitor = RegionMonitor()
     
     public var isTracking = false
+    /// Soglie di validazione
+    public var maxAccuracy: CLLocationAccuracy = 50   // metri
+    public var isTiming = true
+    public var maxAge: TimeInterval = 120              // secondi
     
     private init() {}
     
